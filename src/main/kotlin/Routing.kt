@@ -50,7 +50,7 @@ fun Application.configureRouting() {
 
     routing {
         get("/") {
-            call.respondText("API telah berjalan. Dibuat oleh Marshall Manurung")
+            call.respondText("API gagal berjalan. tapi berlari")
         }
 
         // Route Auth
