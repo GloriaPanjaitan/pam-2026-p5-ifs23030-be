@@ -3,6 +3,7 @@ package org.delcom
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
+import io.ktor.server.http.content.* // Tambahkan import ini untuk staticFiles
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -14,6 +15,7 @@ import org.delcom.services.TodoService
 import org.delcom.services.AuthService
 import org.delcom.services.UserService
 import org.koin.ktor.ext.inject
+import java.io.File
 
 fun Application.configureRouting() {
     val todoService: TodoService by inject()
@@ -38,7 +40,7 @@ fun Application.configureRouting() {
         // Tangkap semua Throwable lainnya
         exception<Throwable> { call, cause ->
             call.respond(
-                status = HttpStatusCode.fromValue(500),
+                status = HttpStatusCode.InternalServerError,
                 message = ErrorResponse(
                     status = "error",
                     message = cause.message ?: "Unknown error",
@@ -49,11 +51,15 @@ fun Application.configureRouting() {
     }
 
     routing {
+        // --- 1. Akses File Statis ---
+        // Baris ini sangat penting agar Flutter bisa mengakses file di folder 'uploads'
+        staticFiles("/uploads", File("uploads"))
+
         get("/") {
             call.respondText("API gagal berjalan. Tapi berlari")
         }
 
-        // Route Auth
+        // --- 2. Route Auth ---
         route("/auth") {
             post("/login") {
                 authService.postLogin(call)
@@ -64,12 +70,12 @@ fun Application.configureRouting() {
             post("/refresh-token") {
                 authService.postRefreshToken(call)
             }
-
             post("/logout") {
                 authService.postLogout(call)
             }
         }
 
+        // --- 3. Route Terproteksi (JWT) ---
         authenticate(JWTConstants.NAME) {
             // Route User
             route("/users") {
@@ -113,6 +119,7 @@ fun Application.configureRouting() {
             }
         }
 
+        // --- 4. Route Image Service (Jika ingin lewat logic service) ---
         route("/images") {
             get("users/{id}") {
                 userService.getPhoto(call)
@@ -122,6 +129,5 @@ fun Application.configureRouting() {
                 todoService.getCover(call)
             }
         }
-
     }
 }
